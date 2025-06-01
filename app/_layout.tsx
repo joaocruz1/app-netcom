@@ -1,4 +1,4 @@
-// app/_layout.tsx
+import 'global.css'
 import { Stack } from 'expo-router';
 // import { useEffect } from 'react'; // Para carregar fontes ou outras tarefas assíncronas
 // import { useFonts } from 'expo-font'; // Para carregar fontes customizadas
