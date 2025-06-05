@@ -49,7 +49,7 @@ export default function OnboardingScreen() {
   };
 
   const navigateToRegister = () => {
-    router.push('/(auth)/register');
+    router.push('/(register)/email')
   };
 
 

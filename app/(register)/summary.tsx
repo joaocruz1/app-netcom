@@ -1,10 +1,15 @@
 // app/(register)/summary.tsx
-import React from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  Alert, 
+  SafeAreaView, 
+  StatusBar, 
+  Image 
+} from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useRegistrationStore } from '../../store/registrationStore';
-// Você pode usar uma imagem de sucesso aqui também
-// import { Image } from 'react-native';
 
 export default function SummaryScreen() {
   const router = useRouter();
@@ -12,31 +17,50 @@ export default function SummaryScreen() {
   const resetRegistration = useRegistrationStore((state) => state.reset);
 
   const handleFinalSubmit = () => {
+    // Aqui seria o local ideal para enviar os dados para a API
     console.log('DADOS FINAIS PARA ENVIAR À API:', registrationData);
-    // TODO: Implementar a chamada real para a API de cadastro/leads
-    Alert.alert('Pronto!', 'Seu cadastro foi concluído. Agora você será direcionado para a tela de login.', [
-      { text: 'OK', onPress: () => {
-        resetRegistration();
-        router.replace('/(auth)/login');
-      }}
-    ]);
+    
+    // Após o envio (ou simulação), resetamos o store e navegamos para o login
+    resetRegistration();
+    router.replace('/(auth)/login');
   };
 
   return (
-    <View className="flex-1 justify-center items-center bg-netcom-background p-6">
-      <Stack.Screen options={{ title: 'Revisão (4/4)' }} />
-      <Text className="text-2xl font-bold text-netcom-blue mb-4">Tudo certo!</Text>
-      {/* Aqui você pode exibir um resumo dos dados preenchidos pelo usuário */}
-      <Text className="text-base text-netcom-text-secondary text-center mb-8">
-        Seu pré-cadastro está quase pronto. Clique em Finalizar para enviar seus dados.
-      </Text>
+    <SafeAreaView className="flex-1 bg-netcom-background">
+      <StatusBar />
+      {/* Escondemos o cabeçalho padrão para ter controle total do layout */}
+      <Stack.Screen options={{ headerShown: false }} />
       
-      <TouchableOpacity
-        className="w-full bg-netcom-orange py-4 rounded-xl items-center"
-        onPress={handleFinalSubmit}
-      >
-        <Text className="text-white text-base font-bold">Finalizar</Text>
-      </TouchableOpacity>
-    </View>
+      {/* Container principal para centralizar tudo */}
+      <View className="flex-1 justify-between items-center p-8">
+        
+        {/* Espaçador superior para empurrar o conteúdo para o centro */}
+        <View />
+
+        {/* Conteúdo central de sucesso */}
+        <View className="items-center">
+          <Image
+            source={require('../../assets/images/success-icon.png')} // Verifique se este caminho está correto!
+            className="w-32 h-32 mb-8"
+            resizeMode="contain"
+          />
+          <Text className="text-3xl font-bold text-netcom-blue mb-4">Pronto!</Text>
+          <Text className="text-base text-netcom-text-secondary text-center max-w-xs">
+            Seu cadastro foi concluído. Agora, para aproveitar todos os benefícios, basta fazer o login.
+          </Text>
+        </View>
+        
+        {/* Botão de Continuar na parte inferior */}
+        <View className="w-full">
+          <TouchableOpacity
+            className="w-full bg-netcom-orange py-4 rounded-xl items-center active:scale-[0.98]"
+            onPress={handleFinalSubmit}
+          >
+            <Text className="text-white text-base font-bold tracking-wider">Ir para o Login</Text>
+          </TouchableOpacity>
+        </View>
+
+      </View>
+    </SafeAreaView>
   );
 }

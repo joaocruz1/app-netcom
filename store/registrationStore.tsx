@@ -1,14 +1,14 @@
 // store/registrationStore.ts
 import { create } from 'zustand';
 
-// Definimos a estrutura dos dados que vamos coletar
 interface RegistrationState {
   email: string;
-  // Informações Pessoais
+  password?: string; // Adicionado
+  confirmPassword?: string; // Adicionado
+  // ... outros campos que você já tem
   fullName: string;
   cpf: string;
   birthDate: string;
-  // Informações de Endereço
   cep: string;
   street: string;
   neighborhood: string;
@@ -16,14 +16,14 @@ interface RegistrationState {
   complement: string;
   city: string;
   state: string;
-  // Ação para atualizar qualquer campo do formulário
-  updateField: (field: keyof Omit<RegistrationState, 'updateField'>, value: string) => void;
-  // Ação para limpar os dados após o envio
+  updateField: (field: keyof Omit<RegistrationState, 'updateField' | 'reset'>, value: string) => void;
   reset: () => void;
 }
 
 const initialState = {
   email: '',
+  password: '', // Adicionado
+  confirmPassword: '', // Adicionado
   fullName: '',
   cpf: '',
   birthDate: '',
