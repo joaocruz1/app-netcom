@@ -1,26 +1,24 @@
 // api/brazmovelService.ts
 import axios from 'axios';
 
-// Defina a URL base da API Brazmóvel aqui ou em um arquivo de constantes/env
-// Exemplo: const API_BASE_URL = 'https://api.brazmovel.com.br/api'; // SUBSTITUA PELA URL CORRETA
-const API_BASE_URL = 'SUA_URL_BASE_DA_API_BRAZMOVEL_AQUI'; 
+// ❗ IMPORTANTE: Substitua pela URL base correta da API Brazmóvel
+const API_BASE_URL = 'https://sua-url-da-api.com.br/api'; 
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    // Outros headers que a API possa exigir
   },
 });
 
-// Interface para os dados de login
+// Tipagem para os dados que enviamos no login
 interface LoginPayload {
   grant_type: 'password' | 'password_codcliente';
   username: string;
   password: string;
 }
 
-// Interface para a resposta de sucesso do login (simplificada)
+// Tipagem para a resposta de sucesso que esperamos da API
 export interface AuthResponse {
   access_token: string;
   token_type: string;
@@ -28,25 +26,29 @@ export interface AuthResponse {
   user: {
     id: number;
     nome_razao: string;
-    // Adicione outros campos do usuário que você queira usar
+    // Adicione outros campos do usuário que a API retorna e você queira usar
   };
 }
 
+/**
+ * Função para autenticar o usuário na API Brazmóvel.
+ * @param payload - Os dados de login (grant_type, username, password).
+ * @returns A promessa com os dados de autenticação.
+ */
 export const loginUser = async (payload: LoginPayload): Promise<AuthResponse> => {
   try {
     const response = await apiClient.post<AuthResponse>('/auth/login', payload);
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
-      // O servidor respondeu com um status de erro (4xx, 5xx)
+      // O servidor respondeu com um erro (ex: 401 - Não Autorizado)
       console.error('API Login Error:', error.response.data);
-      throw error.response.data; // Lança os dados do erro da API
+      // Lança o erro para que a tela de login possa tratá-lo
+      throw new Error(error.response.data.message || 'Usuário ou senha inválidos.');
     } else {
-      // Erro de rede ou outro tipo de erro
+      // Erro de rede ou outro problema
       console.error('Network or other error:', error);
-      throw new Error('Erro ao tentar fazer login. Verifique sua conexão.');
+      throw new Error('Não foi possível conectar. Verifique sua internet.');
     }
   }
 };
-
-// Você adicionará outras funções de API aqui depois (buscar faturas, etc.)

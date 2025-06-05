@@ -1,4 +1,3 @@
-// app/(auth)/login.tsx (Sem sombras)
 import React, { useState } from 'react';
 import {
   View,
@@ -11,27 +10,51 @@ import {
   ScrollView,
   StatusBar,
   ActivityIndicator,
-  // StyleSheet foi removido pois não estamos mais definindo sombras aqui
+  Alert
 } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { loginUser } from '../../api/brazmovelService';
+import { useAuthStore } from '../../store/authStore';
 
 export default function LoginScreen() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const setAuth = useAuthStore((state) => state.setAuth);
 
-  const handleLogin = () => {
-    if (isLoading) return;
+  const handleLogin = async () => {
+    if (isLoading || !identifier || !password) {
+      if (!identifier || !password) {
+        Alert.alert("Atenção", "Por favor, preencha todos os campos.");
+      }
+      return;
+    }
     setIsLoading(true);
-    console.log('Login attempt:');
-    console.log('Identifier:', identifier);
-    console.log('Password:', password);
-    setTimeout(() => {
+
+    try {
+      // Lógica simples para determinar o grant_type. Ajuste conforme as regras da sua API.
+      const isCodCliente = /^\d+$/.test(identifier) && identifier.length < 11;
+      const grantType = isCodCliente ? 'password_codcliente' : 'password';
+
+      const response = await loginUser({
+        grant_type: grantType,
+        username: identifier,
+        password: password,
+      });
+      
+      // Se o login foi bem-sucedido, salva os dados e navega
+      await setAuth(response.access_token, response.user);
+      
+      // Navega para a área principal do app, substituindo a pilha de login
+      router.replace('/(tabs)');
+
+    } catch (error: any) {
+      Alert.alert('Erro no Login', error.message || 'Ocorreu um erro inesperado.');
+    } finally {
       setIsLoading(false);
-      // TODO: Lógica de autenticação real
-      // router.replace('/(tabs)');
-    }, 2000);
+    }
   };
 
   return (
@@ -44,8 +67,7 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View className="items-center p-4">
-          {/* Removida a classe shadow-xl daqui e a aplicação de style={styles.cardShadow} */}
-          <View className="w-full max-w-sm bg-netcom-card-bg p-6 sm:p-8 rounded-2xl"> 
+          <View className="w-full max-w-sm bg-netcom-card-bg p-6 sm:p-8 rounded-2xl">
             <Image
               source={require('../../assets/images/netcom-logo.png')} // Verifique o caminho!
               className="w-40 h-20 self-center mb-6"
@@ -88,13 +110,13 @@ export default function LoginScreen() {
                   onChangeText={setPassword}
                   secureTextEntry
                   editable={!isLoading}
+                  onSubmitEditing={handleLogin} // Permite logar pressionando "Enter" no teclado
                 />
               </View>
             </View>
 
-            {/* Removida a classe shadow-lg daqui e a aplicação de style={styles.buttonShadow} */}
             <TouchableOpacity
-              className={`w-full py-3.5 rounded-xl items-center justify-center mb-6
+              className={`w-full py-3.5 rounded-xl items-center justify-center mb-6 shadow-lg
                           transition-transform duration-150 ease-in-out active:scale-[0.98]
                           ${isLoading
                             ? 'bg-netcom-orange/60'
@@ -123,6 +145,3 @@ export default function LoginScreen() {
     </KeyboardAvoidingView>
   );
 }
-
-// StyleSheet foi removido pois não estamos mais definindo sombras com ele aqui.
-// Se você precisar de outros estilos complexos não cobertos pelo NativeWind, pode adicioná-lo de volta.
