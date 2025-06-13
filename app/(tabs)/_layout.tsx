@@ -1,33 +1,45 @@
-import { Link, Tabs } from 'expo-router';
+import React from 'react';
+import { Tabs } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { createStackNavigator } from '@react-navigation/stack';
 
-import { HeaderButton } from '../../components/HeaderButton';
-import { TabBarIcon } from '../../components/TabBarIcon';
+const Stack = createStackNavigator();
 
 export default function TabLayout() {
+  const headerColor = '#FF6600';
+
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: 'black',
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <HeaderButton />
-            </Link>
-          ),
+    <>
+      <StatusBar style="light" backgroundColor={headerColor} />
+      <Tabs
+        screenOptions={{
+          headerShown: true,
+          headerStyle: {
+            backgroundColor: headerColor,
+          },
+          headerTintColor: '#FFFFFF',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
+          headerTitleAlign: 'center',
+          tabBarStyle: {
+            display: 'none',
+          },
         }}
-      />
-      <Tabs.Screen
-        name="two"
-        options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Minhas Linhas',
+          }}
+        />
+        <Tabs.Screen
+          name="detalhes"
+          options={{
+            title: 'Detalhes da Linha',
+          }}
+        />
+      </Tabs>
+    </>
   );
 }

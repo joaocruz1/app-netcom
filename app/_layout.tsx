@@ -1,57 +1,59 @@
-// app/_layout.tsx (ATUALIZADO)
+// app/_layout.tsx (VERSÃO FINAL E CORRIGIDA)
 import '../global.css';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { useEffect } from 'react';
-import { useAuthStore } from '../store/authStore'; // Verifique se o caminho está correto
+import { useEffect, useState } from 'react';
+import { useAuthStore } from '../store/authStore';
 import { View, ActivityIndicator } from 'react-native';
 
-// Este componente é a raiz da navegação e decide qual "grupo" mostrar.
 const InitialLayout = () => {
   const { isAuthenticated, _hasHydrated } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
+  
+  const [isNavigationReady, setNavigationReady] = useState(false);
 
   useEffect(() => {
-    // Se a store ainda não foi carregada do AsyncStorage, não fazemos nada.
-    if (!_hasHydrated) {
+    // A lógica de navegação só é executada quando AMBAS as condições são verdadeiras.
+    if (!_hasHydrated || !isNavigationReady) {
       return;
     }
 
-    const inAuthGroup = segments[0] === '(auth)' || segments[0] === '(register)';
+    const inTabsGroup = segments[0] === '(tabs)';
 
-    // Se o usuário NÃO está logado E NÃO está nas telas de auth/register,
-    // manda ele para a tela de login.
-    if (!isAuthenticated && !inAuthGroup) {
+    if (isAuthenticated && !inTabsGroup) {
+      // Se logado e fora da área principal, redireciona para dentro.
+      router.replace('/(tabs)');
+    } else if (!isAuthenticated && inTabsGroup) {
+      // Se não logado e tentando acessar área protegida, redireciona para login.
       router.replace('/(auth)/login');
     }
-    // Se o usuário ESTÁ logado E está em uma tela de auth/register,
-    // manda ele para a tela principal.
-    else if (isAuthenticated && inAuthGroup) {
-      router.replace('/(tabs)');
-    }
-  }, [isAuthenticated, _hasHydrated, segments, router]);
+  }, [isAuthenticated, _hasHydrated, isNavigationReady, segments, router]);
 
-  // Enquanto a store está sendo carregada, mostramos uma tela de loading.
-  // Isso evita que a tela de login apareça rapidamente antes de redirecionar.
+  // Passo 1: Mostra o loading APENAS enquanto a store não foi carregada.
   if (!_hasHydrated) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#0000ff" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9FAFB' }}>
+        <ActivityIndicator size="large" color="#FF6600" />
       </View>
     );
   }
 
-  // Se a store já foi carregada, o Stack assume e mostra a tela correta.
+  // Passo 2: Assim que a store carregar, renderiza o layout principal.
+  // A propriedade onLayout irá disparar setNavigationReady(true), o que por sua vez
+  // irá "desbloquear" o useEffect para fazer o redirecionamento, se necessário.
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(register)" />
-      <Stack.Screen name="(tabs)" />
-    </Stack>
+    <View style={{ flex: 1 }} onLayout={() => setNavigationReady(true)}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(register)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+      </Stack>
+    </View>
   );
 };
 
-// O componente principal exportado é o RootLayout que renderiza nosso InitialLayout.
 export default function RootLayout() {
   return <InitialLayout />;
 }

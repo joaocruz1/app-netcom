@@ -51,7 +51,7 @@ export default function LoginScreen() {
       await AsyncStorage.setItem('authToken', token);
 
       // 4. Atualiza o estado global da aplicação (Zustand, Context, etc.)
-      loginInStore(user, token);
+      loginInStore(token,user);
       
       // 5. Navega para a área principal do app
       router.replace('/(tabs)');

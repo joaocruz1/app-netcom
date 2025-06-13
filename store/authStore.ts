@@ -1,76 +1,70 @@
-// src/store/authStore.ts
-
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+// store/authStore.ts (ATUALIZADO)
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
-// Definimos a interface para os dados do usuário que queremos guardar
-interface User {
+// 1. (Opcional, mas recomendado) Definir uma interface para o objeto do usuário para ter um código mais seguro e previsível.
+export interface User {
   id: string;
-  name: string;
-  email: string;
   cpf: string;
+  email: string;
+  name: string;
   status: string;
 }
 
-// Definimos a interface completa do nosso estado de autenticação
-interface AuthState {
-  user: User | null;
+// 2. Atualizar o estado para incluir as informações do usuário
+export interface AuthState {
   token: string | null;
+  user: User | null; // Adicionado o estado do usuário
   isAuthenticated: boolean;
-  login: (userData: User, token: string) => void;
+  _hasHydrated: boolean;
+  login: (token: string, user: User) => void; // Ação de login agora recebe o usuário
   logout: () => void;
-  // (Opcional) um estado para saber quando a store foi reidratada do AsyncStorage
-  _hasHydrated: boolean; 
-  setHasHydrated: (hasHydrated: boolean) => void;
+  setHasHydrated: (hydrated: boolean) => void;
 }
 
-export const useAuthStore = create(
-  // 1. O middleware 'persist' envolve toda a nossa store
-  persist<AuthState>(
-    // 2. A função 'set' é como atualizamos o estado
+export const useAuthStore = create<AuthState>()(
+  persist(
     (set) => ({
-      user: null,
+      // 3. Adicionar os valores iniciais
       token: null,
+      user: null,
       isAuthenticated: false,
-      _hasHydrated: false, // Começa como falso
+      _hasHydrated: false,
 
-      // Ação de Login: atualiza o estado com os dados recebidos
-      login: (userData, token) => {
+      setHasHydrated: (hydrated) => {
         set({
-          user: userData,
-          token: token,
-          isAuthenticated: true,
+          _hasHydrated: hydrated,
         });
       },
 
-      // Ação de Logout: limpa todos os dados de autenticação
-      logout: () => {
-        // Também limpa o token do AsyncStorage ao deslogar
-        AsyncStorage.removeItem('authToken'); 
+      // 4. Atualizar a ação de login para salvar o token E o usuário
+      login: (token, user) => {
         set({
-          user: null,
+          token,
+          user, // Salva o objeto do usuário no estado
+          isAuthenticated: !!token,
+        });
+      },
+
+      // 5. Atualizar o logout para limpar o token E o usuário
+      logout: () => {
+        set({
           token: null,
+          user: null, // Limpa o usuário ao fazer logout
           isAuthenticated: false,
         });
-      },
-      
-      setHasHydrated: (hasHydrated) => {
-        set({
-          _hasHydrated: hasHydrated,
-        });
+        // Opcional: Limpar também o AsyncStorage completamente se necessário
+        // AsyncStorage.removeItem('auth-storage');
       },
     }),
-    // 3. Opções de configuração para o middleware 'persist'
     {
-      name: 'auth-storage', // Nome da chave no AsyncStorage
-      storage: createJSONStorage(() => AsyncStorage), // Define o motor de armazenamento
-      // (Opcional) Função que é chamada após a reidratação do estado
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          state.setHasHydrated(true);
-        }
+      name: 'auth-storage',
+      storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: (state) => {
+        console.log('Dados de autenticação carregados do storage.');
+        state?.setHasHydrated(true);
       },
-    }
-  )
+    },
+  ),
 );
