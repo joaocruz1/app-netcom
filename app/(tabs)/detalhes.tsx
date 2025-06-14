@@ -3,15 +3,36 @@ import React from 'react';
 import { View, Text, SafeAreaView, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { MaterialIcons, FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Line } from '~/api/APIBrazmovel';
-import Svg, { Circle } from 'react-native-svg'; // Import para o anel de progresso
+import { Line, getInfoPlan, ProductPlan, InfoLinePlan } from '~/api/APIBrazmovel';
+import Svg, { Circle } from 'react-native-svg';
 import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { LineItem } from '~/components/LineItem';
 
 export default function DetalhesLinha() {
   const { linha } = useLocalSearchParams<{ linha: string }>();
+  const [product, setProduct] = useState<ProductPlan[]>([]);
+  const [planItems, setPlanItems] = useState<Array<InfoLinePlan['items'][0]>>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const linhaData: Line = JSON.parse(linha || '{}');
   const router = useRouter();
 
+  useEffect(() => {
+    const fetchLines = async () => {
+      try {
+        const userPlan = await getInfoPlan({ id: linhaData.id });
+        setPlanItems(userPlan.items);
+        setProduct(userPlan.items.map(item => item.product));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLines();
+  }, [linhaData.id]);
 
   const formatPhoneNumber = (msisdn: string): string => {
     const cleaned = msisdn.replace(/\D/g, '');
@@ -21,11 +42,20 @@ export default function DetalhesLinha() {
     return msisdn;
   };
 
-  // --- Lógica para o anel de progresso ---
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const radius = 80;
   const strokeWidth = 15;
   const circumference = 2 * Math.PI * radius;
-  // Exemplo: 0% de progresso, já que os dados são 0. Mude o valor de 'progress' (0 a 1) para ver o anel mudar.
   const progress = 0;
   const strokeDashoffset = circumference - circumference * progress;
 
@@ -50,7 +80,6 @@ export default function DetalhesLinha() {
         {/* Dados de consumo com anel de progresso */}
         <View style={styles.progressContainer}>
           <Svg width={radius * 2} height={radius * 2} viewBox={`0 0 ${radius * 2} ${radius * 2}`}>
-            {/* Círculo de fundo */}
             <Circle
               stroke="#F0F0F0"
               fill="none"
@@ -59,9 +88,8 @@ export default function DetalhesLinha() {
               r={radius - strokeWidth / 2}
               strokeWidth={strokeWidth}
             />
-            {/* Círculo de progresso */}
             <Circle
-              stroke="#FF6600" // Cor laranja principal
+              stroke="#FF6600"
               fill="none"
               cx={radius}
               cy={radius}
@@ -81,22 +109,23 @@ export default function DetalhesLinha() {
 
         {/* Status e plano */}
         <TouchableOpacity style={styles.infoContainer}>
-            <View style={styles.infoTextWrapper}>
-                <View style={styles.statusBadge}>
-                    <Text style={styles.statusText}>{linhaData.status}</Text>
-                </View>
-                <Text style={styles.planName}>Braz Móvel 10GB</Text>
-                <Text style={styles.renewalText}>Renovará em 24/05/2025 12:40</Text>
+          <View style={styles.infoTextWrapper}>
+            <View style={styles.statusBadge}>
+              <Text style={styles.statusText}>{linhaData.status}</Text>
             </View>
-            <MaterialIcons name="keyboard-arrow-right" size={30} color="#FF6600" />
+            <Text style={styles.planName}>{product[0]?.title}</Text>
+            <Text style={styles.renewalText}>
+              {planItems[0]?.endDate 
+                ? `Renovará em ${formatDate(planItems[0].endDate)}`
+                : 'Data de renovação não disponível'}
+            </Text>
+          </View>
+          <MaterialIcons name="keyboard-arrow-right" size={30} color="#FF6600" />
         </TouchableOpacity>
 
-
-        {/* Banner Promocional (Substituindo os botões) */}
+        {/* Banner Promocional */}
         <View style={styles.bannerContainer}>
-            {/* Você pode usar um componente de Imagem aqui */}
-            {/* Exemplo: <Image source={require('../path/to/your/banner.png')} style={styles.bannerImage} /> */}
-           <Text style={styles.bannerPlaceholderText}>Espaço para Banner</Text>
+          <Text style={styles.bannerPlaceholderText}>Espaço para Banner</Text>
         </View>
       </View>
 
@@ -127,7 +156,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#0A2F5B',
     paddingHorizontal: 20,
-    paddingTop: 40, // Ajuste para SafeArea
+    paddingTop: 40,
     paddingBottom: 20,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
@@ -233,11 +262,11 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 100,
     borderRadius: 15,
-    backgroundColor: '#FFEADD', // Cor de placeholder similar ao da imagem
+    backgroundColor: '#FFEADD',
     justifyContent: 'center',
     alignItems: 'center',
   },
-   bannerPlaceholderText: {
+  bannerPlaceholderText: {
     color: '#FF6600',
     fontWeight: 'bold',
   },
