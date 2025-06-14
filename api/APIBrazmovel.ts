@@ -52,6 +52,44 @@ export interface InfoLinePlan {
   count: number;
 }
 
+export interface LineUsage { 
+    remaining : number,
+    total : number,
+    types : [
+        description: string,
+        remaining: number,
+        total : number
+    ]
+}
+
+export const getUsageLine = async (payload: idLine): Promise<LineUsage> => {
+    try {
+        console.log(payload.id);
+        const response = await axios.get<LineUsage>(`${API_BASE_URL}line/${payload.id}/usage`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+        return {
+            remaining: response.data.remaining, 
+            total: response.data.total,         
+            types: response.data.types          
+        };
+
+    }catch (error){
+        if (axios.isAxiosError(error) && error.response) {
+        console.error('API Error:', error.response.status, error.response.data);
+        throw new Error(
+        error.response.data.error || 'Ocorreu um erro ao tentar obter as linhas.'
+        );
+        } else {
+        console.error('Network or other error:', error);
+        throw new Error('Não foi possível conectar. Verifique sua internet.');
+        
+        }
+    }
+}
+
 export const getInfoPlan = async (payload: idLine): Promise<InfoLinePlan> => {
     try {
         console.log(payload.id);

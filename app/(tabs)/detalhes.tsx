@@ -1,290 +1,447 @@
 // app/(tabs)/detalhes.tsx
-import React from 'react';
-import { View, Text, SafeAreaView, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { 
+    View, 
+    Text, 
+    SafeAreaView, 
+    StyleSheet, 
+    TouchableOpacity, 
+    ActivityIndicator, 
+    Dimensions,
+    ScrollView // 1. Importe o ScrollView
+} from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialIcons, FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Line, getInfoPlan, ProductPlan, InfoLinePlan } from '~/api/APIBrazmovel';
+import { Line, getInfoPlan, ProductPlan, InfoLinePlan, getUsageLine, LineUsage } from '~/api/APIBrazmovel';
 import Svg, { Circle } from 'react-native-svg';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { LineItem } from '~/components/LineItem';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
 
 export default function DetalhesLinha() {
-  const { linha } = useLocalSearchParams<{ linha: string }>();
-  const [product, setProduct] = useState<ProductPlan[]>([]);
-  const [planItems, setPlanItems] = useState<Array<InfoLinePlan['items'][0]>>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const linhaData: Line = JSON.parse(linha || '{}');
-  const router = useRouter();
+    const { linha } = useLocalSearchParams<{ linha: string }>();
+    const [product, setProduct] = useState<ProductPlan[]>([]);
+    const [planItems, setPlanItems] = useState<Array<InfoLinePlan['items'][0]>>([]);
+    const [usageData, setUsageData] = useState<LineUsage | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const linhaData: Line = JSON.parse(linha || '{}');
+    const router = useRouter();
 
-  useEffect(() => {
-    const fetchLines = async () => {
-      try {
-        const userPlan = await getInfoPlan({ id: linhaData.id });
-        setPlanItems(userPlan.items);
-        setProduct(userPlan.items.map(item => item.product));
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erro desconhecido');
-      } finally {
-        setLoading(false);
-      }
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                if (!linhaData.id) {
+                    setError('Dados da linha não encontrados.');
+                    setLoading(false);
+                    return;
+                }
+                const userPlan = await getInfoPlan({ id: linhaData.id });
+                setPlanItems(userPlan.items);
+                setProduct(userPlan.items.map(item => item.product));
+
+                const usage = await getUsageLine({ id: linhaData.id });
+                setUsageData(usage);
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Erro desconhecido');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [linhaData.id]);
+
+    const formatPhoneNumber = (msisdn: string): string => {
+        const cleaned = (msisdn || '').replace(/\D/g, '');
+        if (cleaned.length === 11) {
+            return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+        }
+        return msisdn;
     };
 
-    fetchLines();
-  }, [linhaData.id]);
+    const formatDate = (dateString: string) => {
+        if (!dateString) return 'Data indisponível';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
 
-  const formatPhoneNumber = (msisdn: string): string => {
-    const cleaned = msisdn.replace(/\D/g, '');
-    if (cleaned.length === 11) {
-      return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    const bytesToGB = (bytes: number): number => bytes / (1024 * 1024 * 1024);
+
+    const formatDataDisplay = (bytes: number): string => {
+        if (typeof bytes !== 'number') return '0 GB';
+        const gbValue = bytesToGB(bytes);
+        return gbValue.toFixed(2) + ' GB';
+    };
+
+    // Configurações do círculo de progresso
+    const radius = width * 0.28; // Reduzido um pouco para melhor encaixe
+    const strokeWidth = 12;
+    const circumference = 2 * Math.PI * radius;
+    const dataUsed = usageData ? usageData.total - usageData.remaining : 0;
+    const progress = usageData && usageData.total > 0 ? dataUsed / usageData.total : 0;
+    const strokeDashoffset = circumference - circumference * progress;
+
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.centeredContainer}>
+                    <ActivityIndicator size="large" color="#0A2F5B" />
+                </View>
+            </SafeAreaView>
+        );
     }
-    return msisdn;
-  };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+    if (error) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.centeredContainer}>
+                    <Text style={styles.errorText}>{error}</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
 
-  const radius = 80;
-  const strokeWidth = 15;
-  const circumference = 2 * Math.PI * radius;
-  const progress = 0;
-  const strokeDashoffset = circumference - circumference * progress;
+    return (
+        <SafeAreaView style={styles.container}>
+            {/* Cabeçalho com gradiente */}
+            <LinearGradient
+                colors={['#0A2F5B', '#1A4B8C']}
+                style={styles.header}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+            >
+                <View style={styles.headerContent}>
+                    <View>
+                        <Text style={styles.userName}>Carlos</Text>
+                        <Text style={styles.phoneNumber}>{formatPhoneNumber(linhaData.msisdn)}</Text>
+                    </View>
+                    <TouchableOpacity 
+                        style={styles.changeLineButton}
+                        onPress={() => router.push('/(tabs)')}
+                    >
+                        <Text style={styles.changeLineText}>Trocar linha</Text>
+                        <MaterialIcons name="keyboard-arrow-right" size={24} color="white" />
+                    </TouchableOpacity>
+                </View>
+            </LinearGradient>
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Cabeçalho */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.userName}>Carlos</Text>
-            <Text style={styles.phoneNumber}>{formatPhoneNumber(linhaData.msisdn)}</Text>
-          </View>
-          <TouchableOpacity style={styles.changeLineButton} onPress={() => router.push('/(tabs)')}>
-            <Text style={styles.changeLineText}>Trocar linha</Text>
-            <MaterialIcons name="keyboard-arrow-right" size={24} color="#FF6600" />
-          </TouchableOpacity>
-        </View>
-      </View>
+            {/* 2. Substitua a View de 'content' por um ScrollView */}
+            <ScrollView 
+                style={styles.content}
+                contentContainerStyle={styles.contentContainer}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* Container do círculo de progresso */}
+                <View style={styles.progressCard}>
+                    <View style={styles.progressContainer}>
+                        <Svg width={radius * 2} height={radius * 2} viewBox={`0 0 ${radius * 2} ${radius * 2}`}>
+                            <Circle stroke="#F0F5FF" fill="none" cx={radius} cy={radius} r={radius - strokeWidth / 2} strokeWidth={strokeWidth} />
+                            <Circle
+                                stroke="#0A2F5B"
+                                fill="none"
+                                cx={radius}
+                                cy={radius}
+                                r={radius - strokeWidth / 2}
+                                strokeWidth={strokeWidth}
+                                strokeDasharray={circumference}
+                                strokeDashoffset={strokeDashoffset}
+                                strokeLinecap="round"
+                                transform={`rotate(-90 ${radius} ${radius})`}
+                            />
+                        </Svg>
+                        <View style={styles.progressTextContainer}>
+                            <Text style={styles.dataTitle}>
+                                {usageData ? formatDataDisplay(usageData.remaining) : '0 GB'}
+                            </Text>
+                            <Text style={styles.dataSubtitle}>Disponível</Text>
+                            <View style={styles.progressDivider} />
+                            <Text style={styles.dataTotal}>
+                                {usageData ? formatDataDisplay(usageData.total) : '0 GB'} Total
+                            </Text>
+                        </View>
+                    </View>
+                    <View style={styles.percentageBadge}>
+                        <Text style={styles.percentageText}>
+                            {`${(progress * 100).toFixed(0)}% USADO`}
+                        </Text>
+                    </View>
+                </View>
 
-      {/* Conteúdo principal */}
-      <View style={styles.content}>
-        {/* Dados de consumo com anel de progresso */}
-        <View style={styles.progressContainer}>
-          <Svg width={radius * 2} height={radius * 2} viewBox={`0 0 ${radius * 2} ${radius * 2}`}>
-            <Circle
-              stroke="#F0F0F0"
-              fill="none"
-              cx={radius}
-              cy={radius}
-              r={radius - strokeWidth / 2}
-              strokeWidth={strokeWidth}
-            />
-            <Circle
-              stroke="#FF6600"
-              fill="none"
-              cx={radius}
-              cy={radius}
-              r={radius - strokeWidth / 2}
-              strokeWidth={strokeWidth}
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              strokeLinecap="round"
-              transform={`rotate(-90 ${radius} ${radius})`}
-            />
-          </Svg>
-          <View style={styles.progressTextContainer}>
-            <Text style={styles.dataTitle}>0 MB</Text>
-            <Text style={styles.dataSubtitle}>de 0 MB</Text>
-          </View>
-        </View>
+                {/* Card de informações do plano */}
+                <TouchableOpacity style={styles.infoCard}>
+                    <View style={styles.infoContent}>
+                        <View style={styles.infoHeader}>
+                            <View style={[styles.statusBadge, linhaData.status?.toUpperCase() === 'ACTIVE' ? styles.statusActive : styles.statusInactive]}>
+                                <Text style={styles.statusText}>{linhaData.status?.toUpperCase()}</Text>
+                            </View>
+                            <MaterialIcons name="keyboard-arrow-right" size={24} color="#0A2F5B" />
+                        </View>
+                        <Text style={styles.planName}>{product[0]?.title || 'Plano não carregado'}</Text>
+                        <View style={styles.renewalContainer}>
+                            <MaterialIcons name="update" size={18} color="#6B7280" />
+                            <Text style={styles.renewalText}>
+                                {`Renovação: ${formatDate(planItems[0]?.endDate)}`}
+                            </Text>
+                        </View>
+                    </View>
+                </TouchableOpacity>
 
-        {/* Status e plano */}
-        <TouchableOpacity style={styles.infoContainer}>
-          <View style={styles.infoTextWrapper}>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>{linhaData.status}</Text>
+                {/* Banner promocional */}
+                <View style={styles.bannerCard}>
+                    <LinearGradient
+                        colors={['#FFEADD', '#FFD8C5']}
+                        style={styles.bannerGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                    >
+                        <Text style={styles.bannerTitle}>Oferta Especial</Text>
+                        <Text style={styles.bannerText}>Ative agora e ganhe 5GB extras!</Text>
+                    </LinearGradient>
+                </View>
+            </ScrollView>
+
+            {/* Menu de navegação (permanece fixo no final) */}
+            <View style={styles.navContainer}>
+                {[
+                    { icon: 'home', label: 'Início', active: true, type: 'MaterialIcons' },
+                    { icon: 'shopping-bag', label: 'Loja', active: false, type: 'FontAwesome' },
+                    { icon: 'account', label: 'Perfil', active: false, type: 'MaterialCommunityIcons' }
+                ].map((item, index) => (
+                    <TouchableOpacity key={index} style={styles.navButton} onPress={() => {}}>
+                        {item.type === 'MaterialIcons' && <MaterialIcons name={item.icon as any} size={26} color={item.active ? '#0A2F5B' : '#9CA3AF'} />}
+                        {item.type === 'FontAwesome' && <FontAwesome name={item.icon as any} size={24} color={item.active ? '#0A2F5B' : '#9CA3AF'} />}
+                        {item.type === 'MaterialCommunityIcons' && <MaterialCommunityIcons name={item.icon as any} size={26} color={item.active ? '#0A2F5B' : '#9CA3AF'} />}
+                        <Text style={[styles.navLabel, item.active && styles.navLabelActive]}>
+                            {item.label}
+                        </Text>
+                    </TouchableOpacity>
+                ))}
             </View>
-            <Text style={styles.planName}>{product[0]?.title}</Text>
-            <Text style={styles.renewalText}>
-              {planItems[0]?.endDate 
-                ? `Renovará em ${formatDate(planItems[0].endDate)}`
-                : 'Data de renovação não disponível'}
-            </Text>
-          </View>
-          <MaterialIcons name="keyboard-arrow-right" size={30} color="#FF6600" />
-        </TouchableOpacity>
-
-        {/* Banner Promocional */}
-        <View style={styles.bannerContainer}>
-          <Text style={styles.bannerPlaceholderText}>Espaço para Banner</Text>
-        </View>
-      </View>
-
-      {/* Menu de navegação inferior */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialIcons name="home" size={28} color="#FF6600" />
-          <Text style={[styles.navText, { color: '#FF6600' }]}>Início</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <FontAwesome name="shopping-bag" size={24} color="#6B7280" />
-          <Text style={styles.navText}>Loja</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialCommunityIcons name="account" size={28} color="#6B7280" />
-          <Text style={styles.navText}>Perfil</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
-  );
+        </SafeAreaView>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F7FAFC',
-  },
-  header: {
-    backgroundColor: '#0A2F5B',
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  userName: {
-    color: 'white',
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  phoneNumber: {
-    color: 'white',
-    fontSize: 16,
-    opacity: 0.9,
-  },
-  changeLineButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-  },
-  changeLineText: {
-    color: '#FF6600',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginRight: 2,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    paddingTop: 30,
-  },
-  progressContainer: {
-    width: 160,
-    height: 160,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 30,
-  },
-  progressTextContainer: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dataTitle: {
-    fontSize: 30,
-    fontWeight: 'bold',
-    color: '#0A2F5B',
-  },
-  dataSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  infoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 5,
-    marginBottom: 30,
-    width: '100%',
-  },
-  infoTextWrapper: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statusBadge: {
-    backgroundColor: '#E6FFED',
-    paddingHorizontal: 15,
-    paddingVertical: 5,
-    borderRadius: 20,
-    marginBottom: 15,
-  },
-  statusText: {
-    color: '#10B981',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  planName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#0A2F5B',
-    marginBottom: 5,
-  },
-  renewalText: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
-  bannerContainer: {
-    width: '100%',
-    height: 100,
-    borderRadius: 15,
-    backgroundColor: '#FFEADD',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bannerPlaceholderText: {
-    color: '#FF6600',
-    fontWeight: 'bold',
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    backgroundColor: 'white',
-  },
-  navItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  navText: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-  },
+    container: {
+        flex: 1,
+        backgroundColor: '#F8FAFC',
+    },
+    header: {
+        paddingHorizontal: 24,
+        paddingTop: 20,
+        paddingBottom: 20,
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+    },
+    headerContent: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    userName: {
+        color: 'white',
+        fontSize: 22,
+        fontWeight: 'bold',
+        marginBottom: 4,
+    },
+    phoneNumber: {
+        color: 'rgba(255, 255, 255, 0.9)',
+        fontSize: 16,
+    },
+    changeLineButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+    },
+    changeLineText: {
+        color: 'white',
+        fontSize: 14,
+        fontWeight: '600',
+        marginRight: 4,
+    },
+    // 3. Estilos para o ScrollView e seu conteúdo
+    content: {
+        flex: 1, // Permite que o ScrollView ocupe o espaço disponível
+    },
+    contentContainer: {
+        paddingHorizontal: 20,
+        paddingVertical: 24, // Adicionado padding vertical
+    },
+    progressCard: {
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 24,
+        alignItems: 'center',
+        shadowColor: '#9CA3AF',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 5,
+        marginBottom: 20,
+    },
+    progressContainer: {
+        position: 'relative',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 20,
+    },
+    progressTextContainer: {
+        position: 'absolute',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    dataTitle: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        color: '#0A2F5B',
+        marginBottom: 2,
+    },
+    dataSubtitle: {
+        fontSize: 14,
+        color: '#6B7280',
+    },
+    dataTotal: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#6B7280',
+        marginTop: 4,
+    },
+    progressDivider: {
+        width: 40,
+        height: 1.5,
+        backgroundColor: '#E5E7EB',
+        marginVertical: 8,
+    },
+    percentageBadge: {
+        backgroundColor: '#F0F5FF',
+        paddingHorizontal: 16,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
+    percentageText: {
+        color: '#0A2F5B',
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
+    infoCard: {
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 20,
+        shadowColor: '#9CA3AF',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 5,
+        marginBottom: 20,
+    },
+    infoContent: {
+        width: '100%',
+    },
+    infoHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    statusBadge: {
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        borderRadius: 20,
+    },
+    statusActive: {
+      backgroundColor: '#D1FAE5', // Verde
+    },
+    statusInactive: {
+      backgroundColor: '#FEE2E2', // Vermelho
+    },
+    statusText: {
+        fontWeight: 'bold',
+        fontSize: 13,
+        color: '#065F46', // Cor para texto do status ativo
+    },
+    planName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#0A2F5B',
+        marginBottom: 12,
+    },
+    renewalContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    renewalText: {
+        fontSize: 14,
+        color: '#6B7280',
+        marginLeft: 8,
+    },
+    bannerCard: {
+        borderRadius: 20,
+        overflow: 'hidden',
+        shadowColor: '#9CA3AF',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 5,
+        marginBottom: 20, // Adiciona espaço antes do fim da área de rolagem
+    },
+    bannerGradient: {
+        flex: 1,
+        justifyContent: 'center',
+        padding: 20,
+        minHeight: 100,
+    },
+    bannerTitle: {
+        color: '#C25A1A',
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 4,
+    },
+    bannerText: {
+        color: '#4B5563',
+        fontSize: 14,
+    },
+    navContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        paddingVertical: 10,
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+        backgroundColor: 'white',
+    },
+    navButton: {
+        alignItems: 'center',
+        padding: 4,
+    },
+    navLabel: {
+        fontSize: 12,
+        color: '#9CA3AF',
+        marginTop: 5,
+        fontWeight: '500',
+    },
+    navLabelActive: {
+        color: '#0A2F5B',
+        fontWeight: '600',
+    },
+    centeredContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    errorText: {
+        color: '#EF4444',
+        fontSize: 16,
+        textAlign: 'center',
+        fontWeight: '500'
+    },
 });
