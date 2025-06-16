@@ -10,7 +10,7 @@ import {
     Dimensions,
     ScrollView // 1. Importe o ScrollView
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { MaterialIcons, FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Line, getInfoPlan, ProductPlan, InfoLinePlan, getUsageLine, LineUsage } from '~/api/APIBrazmovel';
 import Svg, { Circle } from 'react-native-svg';
@@ -28,6 +28,42 @@ export default function DetalhesLinha() {
     const [error, setError] = useState<string | null>(null);
     const linhaData: Line = JSON.parse(linha || '{}');
     const router = useRouter();
+    const pathname = usePathname();
+
+        const BottomNavBar = () => {
+        const navItems = [
+            // O path deve corresponder exatamente ao nome do arquivo na sua estrutura de pastas
+            { icon: 'home', label: 'Início', type: 'MaterialIcons', path: '/(tabs)/(home)' },
+            { icon: 'shopping-bag', label: 'Loja', type: 'FontAwesome', path: '/(tabs)/(home)/loja' },
+            { icon: 'account', label: 'Perfil', type: 'MaterialCommunityIcons', path: '/(tabs)/(home)/perfil' }
+        ] as const; // Usar 'as const' para garantir a tipagem correta para o router.push
+
+        return (
+            <View style={styles.navContainer}>
+                {navItems.map((item, index) => {
+                    // Um item é ativo se o seu caminho for igual ao caminho da tela atual
+                    const isActive = pathname === item.path;
+
+                    return (
+                        <TouchableOpacity 
+                            key={index} 
+                            style={styles.navButton} 
+                            onPress={() => router.push(item.path)} // Ação de navegação
+                        >
+                            {item.type === 'MaterialIcons' && <MaterialIcons name={item.icon} size={26} color={isActive ? '#0A2F5B' : '#9CA3AF'} />}
+                            {item.type === 'FontAwesome' && <FontAwesome name={item.icon} size={24} color={isActive ? '#0A2F5B' : '#9CA3AF'} />}
+                            {item.type === 'MaterialCommunityIcons' && <MaterialCommunityIcons name={item.icon} size={26} color={isActive ? '#0A2F5B' : '#9CA3AF'} />}
+                            <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
+                                {item.label}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
+            </View>
+        );
+    };
+
+
 
     useEffect(() => {
         const fetchData = async () => {
@@ -197,22 +233,7 @@ export default function DetalhesLinha() {
             </ScrollView>
 
             {/* Menu de navegação (permanece fixo no final) */}
-            <View style={styles.navContainer}>
-                {[
-                    { icon: 'home', label: 'Início', active: true, type: 'MaterialIcons' },
-                    { icon: 'shopping-bag', label: 'Loja', active: false, type: 'FontAwesome' },
-                    { icon: 'account', label: 'Perfil', active: false, type: 'MaterialCommunityIcons' }
-                ].map((item, index) => (
-                    <TouchableOpacity key={index} style={styles.navButton} onPress={() => {}}>
-                        {item.type === 'MaterialIcons' && <MaterialIcons name={item.icon as any} size={26} color={item.active ? '#0A2F5B' : '#9CA3AF'} />}
-                        {item.type === 'FontAwesome' && <FontAwesome name={item.icon as any} size={24} color={item.active ? '#0A2F5B' : '#9CA3AF'} />}
-                        {item.type === 'MaterialCommunityIcons' && <MaterialCommunityIcons name={item.icon as any} size={26} color={item.active ? '#0A2F5B' : '#9CA3AF'} />}
-                        <Text style={[styles.navLabel, item.active && styles.navLabelActive]}>
-                            {item.label}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
+            <BottomNavBar />
         </SafeAreaView>
     );
 }

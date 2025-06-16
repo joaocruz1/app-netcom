@@ -13,7 +13,7 @@ export default function TabLayout() {
       <StatusBar style="light" backgroundColor={headerColor} />
       <Tabs
         screenOptions={{
-          headerShown: true,
+          headerShown: false,
           headerStyle: {
             backgroundColor: headerColor,
           },

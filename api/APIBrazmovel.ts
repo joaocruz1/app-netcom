@@ -63,6 +63,75 @@ export interface LineUsage {
     ]
 }
 
+export interface PaymentInfo {
+    items : Array<{
+        id : string,
+        amount : number,
+        status : number
+        payedAt : string,
+        startDate : string
+        endDate : string
+    }>;
+    count : number;
+}
+
+export interface ProductInfo { 
+    items : Array<{
+        id : string,
+        title : string,
+        subtitle : string,
+        price : number,
+        cycle : number,
+        status : string,
+        productId : string
+    }>;
+    count : number;
+}
+
+export const getProducts = async (): Promise<ProductInfo> => {
+    try {
+        const response = await axios.get<ProductInfo>(`${API_BASE_URL}product`, {
+                headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+        return response.data;
+    }
+    catch (error){
+        if (axios.isAxiosError(error) && error.response) {
+        console.error('API Error:', error.response.status, error.response.data);
+        throw new Error(
+        error.response.data.error || 'Ocorreu um erro ao tentar obter os produtos da loja.'
+        );
+        } else {
+        console.error('Network or other error:', error);
+        throw new Error('Não foi possível conectar. Verifique sua internet.');
+        }
+    }    
+}
+
+export const getInfoPayement = async (payload: idLine): Promise<PaymentInfo> => {
+    try {
+        const response = await axios.get<PaymentInfo>(`${API_BASE_URL}line/${payload.id}/payment`, {
+                headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+        return response.data;
+    }
+    catch (error){
+        if (axios.isAxiosError(error) && error.response) {
+        console.error('API Error:', error.response.status, error.response.data);
+        throw new Error(
+        error.response.data.error || 'Ocorreu um erro ao tentar obter os pagementos.'
+        );
+        } else {
+        console.error('Network or other error:', error);
+        throw new Error('Não foi possível conectar. Verifique sua internet.');
+        }
+    }
+}
+
 export const getUsageLine = async (payload: idLine): Promise<LineUsage> => {
     try {
         console.log(payload.id);
@@ -135,3 +204,5 @@ export const getLines = async (payload: idUser): Promise<Line[]> => {
         }
     }
 }
+
+
