@@ -22,7 +22,7 @@ const InitialLayout = () => {
 
     if (isAuthenticated && !inTabsGroup) {
       // Se logado e fora da área principal, redireciona para dentro.
-      router.replace('/(tabs)');
+      router.replace('/(tabs)/(home)');
     } else if (!isAuthenticated && inTabsGroup) {
       // Se não logado e tentando acessar área protegida, redireciona para login.
       router.replace('/(auth)/login');
@@ -48,6 +48,7 @@ const InitialLayout = () => {
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(register)" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(home)" />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </View>

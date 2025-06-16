@@ -54,7 +54,7 @@ export default function LoginScreen() {
       loginInStore(token,user);
       
       // 5. Navega para a área principal do app
-      router.replace('/(tabs)');
+      router.replace('/(tabs)/(home)/index');
 
     } catch (error: any) {
       // Mostra o erro retornado pela nossa API (ex: "Credenciais inválidas")

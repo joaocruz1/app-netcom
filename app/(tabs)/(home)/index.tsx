@@ -9,9 +9,9 @@ import {
   TouchableOpacity,
   StatusBar, // Import para controlar a status bar
 } from 'react-native';
-import { useAuthStore } from '../../store/authStore';
+import { useAuthStore } from '../../../store/authStore';
 import { getLines, Line } from '~/api/APIBrazmovel';
-import { LineItem } from '../../components/LineItem';
+import { LineItem } from '../../../components/LineItem';
 import { Ionicons } from '@expo/vector-icons'; // Usaremos Ionicons para um visual mais clean
 
 const MinhasLinhasScreen = () => {

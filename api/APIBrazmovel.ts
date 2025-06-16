@@ -43,6 +43,7 @@ export interface InfoLinePlan {
   items: Array<{
     id: string;
     recurring: boolean;
+    startDate: string;
     endDate: string;
     status: string;
     paymentMethod: string;

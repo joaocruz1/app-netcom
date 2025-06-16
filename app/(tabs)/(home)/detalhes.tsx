@@ -15,6 +15,7 @@ import { MaterialIcons, FontAwesome, MaterialCommunityIcons } from '@expo/vector
 import { Line, getInfoPlan, ProductPlan, InfoLinePlan, getUsageLine, LineUsage } from '~/api/APIBrazmovel';
 import Svg, { Circle } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
+import PlanoInfoCard from '~/components/PlanInfoCard';
 
 const { width } = Dimensions.get('window');
 
@@ -124,7 +125,7 @@ export default function DetalhesLinha() {
                     </View>
                     <TouchableOpacity 
                         style={styles.changeLineButton}
-                        onPress={() => router.push('/(tabs)')}
+                        onPress={() => router.push('/(tabs)/(home)')}
                     >
                         <Text style={styles.changeLineText}>Trocar linha</Text>
                         <MaterialIcons name="keyboard-arrow-right" size={24} color="white" />
@@ -175,23 +176,11 @@ export default function DetalhesLinha() {
                 </View>
 
                 {/* Card de informações do plano */}
-                <TouchableOpacity style={styles.infoCard}>
-                    <View style={styles.infoContent}>
-                        <View style={styles.infoHeader}>
-                            <View style={[styles.statusBadge, linhaData.status?.toUpperCase() === 'ACTIVE' ? styles.statusActive : styles.statusInactive]}>
-                                <Text style={styles.statusText}>{linhaData.status?.toUpperCase()}</Text>
-                            </View>
-                            <MaterialIcons name="keyboard-arrow-right" size={24} color="#0A2F5B" />
-                        </View>
-                        <Text style={styles.planName}>{product[0]?.title || 'Plano não carregado'}</Text>
-                        <View style={styles.renewalContainer}>
-                            <MaterialIcons name="update" size={18} color="#6B7280" />
-                            <Text style={styles.renewalText}>
-                                {`Renovação: ${formatDate(planItems[0]?.endDate)}`}
-                            </Text>
-                        </View>
-                    </View>
-                </TouchableOpacity>
+                <PlanoInfoCard
+                    linhaData={linhaData}
+                    product={product}
+                    planItems={planItems}
+                />
 
                 {/* Banner promocional */}
                 <View style={styles.bannerCard}>
