@@ -4,6 +4,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { View, ActivityIndicator } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const InitialLayout = () => {
   const { isAuthenticated, _hasHydrated } = useAuthStore();
@@ -42,6 +43,7 @@ const InitialLayout = () => {
   // A propriedade onLayout irá disparar setNavigationReady(true), o que por sua vez
   // irá "desbloquear" o useEffect para fazer o redirecionamento, se necessário.
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <View style={{ flex: 1 }} onLayout={() => setNavigationReady(true)}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
@@ -52,6 +54,7 @@ const InitialLayout = () => {
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </View>
+    </GestureHandlerRootView>
   );
 };
 

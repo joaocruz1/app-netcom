@@ -8,35 +8,34 @@ import {
     StyleSheet,
     TouchableOpacity,
     ActivityIndicator,
-    FlatList
+    FlatList,
+    Dimensions
 } from 'react-native';
-import { useRouter, usePathname,Stack } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { MaterialIcons, FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import { getProducts, ProductInfo } from '~/api/APIBrazmovel';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 type ProductItem = ProductInfo['items'][0];
 
-// 1. Centralizando a paleta de cores para fácil manutenção
+// Paleta de cores moderna e atualizada
 const palette = {
-    'netcom-blue': '#0A2F5B',
-    'netcom-orange': '#FF6600',
-    'netcom-orange-darker': '#E05A00',
-    'netcom-background': '#F9FAFB',
-    'netcom-card-bg': '#FFFFFF',
-    'netcom-input-bg': '#FFFFFF',
-    'netcom-input-border': '#D1D5DB',
-    'netcom-input-focus-border': '#FF8C00',
-    'netcom-text-primary': '#111827',
-    'netcom-text-secondary': '#6B7280',
-    'netcom-link': '#0A2F5B',
-    'netcom-placeholder': '#9CA3AF'
+    primary: '#0A2F5B',
+    primaryLight: '#1A4B8C',
+    secondary: '#FF6600',
+    secondaryDark: '#E05A00',
+    background: '#F8FAFC',
+    cardBg: '#FFFFFF',
+    textPrimary: '#1E293B',
+    textSecondary: '#64748B',
+    placeholder: '#94A3B8',
+    success: '#10B981',
+    white: '#FFFFFF',
+    black: '#000000',
+    gray100: '#F1F5F9',
+    gray200: '#E2E8F0'
 };
-
-interface Section {
-    title: string;
-}
-
 
 export default function LojaScreen() {
     const router = useRouter();
@@ -46,6 +45,7 @@ export default function LojaScreen() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Lógica para buscar produtos (não foi alterada)
     useEffect(() => {
         const fetchProducts = async () => {
             try {
@@ -61,12 +61,6 @@ export default function LojaScreen() {
         fetchProducts();
     }, []);
 
-    const renderSectionHeader = ({ section: { title } }: { section: Section }) => (
-        <View style={styles.sectionHeaderContainer}>
-            <Text style={styles.sectionHeader}>{title}</Text>
-        </View>
-    );
-
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', {
             style: 'currency',
@@ -74,46 +68,68 @@ export default function LojaScreen() {
         }).format(value);
     };
 
-    const ProductCard = ({ item }: { item: ProductItem }) => {
+    // Card de produto redesenhado
+    const ProductCard = ({ item, index }: { item: ProductItem; index: number }) => {
         const details = item.subtitle.split('\n');
         const mainSubtitle = details.shift();
 
         return (
-            <View style={styles.productCard}>
-                <View>
+            <Animated.View 
+                entering={FadeInDown.delay(100 * index).duration(600)}
+                style={styles.productCard}
+            >
+                <View style={styles.cardHeader}>
+                    {index === 0 && ( // Adiciona o selo apenas ao primeiro item como exemplo
+                        <View style={styles.cardBadge}>
+                            <Text style={styles.cardBadgeText}>MAIS POPULAR</Text>
+                        </View>
+                    )}
                     <Text style={styles.productTitle}>{item.title}</Text>
                     <Text style={styles.productSubtitle}>{mainSubtitle}</Text>
-                    
-                    <View style={styles.detailsList}>
-                        {details.map((detail, index) => (
-                            <View key={index} style={styles.detailItem}>
-                                <MaterialIcons name="check-circle-outline" size={20} color={palette['netcom-blue']} style={styles.bulletIcon} />
-                                <Text style={styles.detailText}>{detail.trim()}</Text>
-                            </View>
-                        ))}
-                    </View>
+                </View>
+                
+                <View style={styles.detailsList}>
+                    {details.map((detail, idx) => (
+                        <View key={idx} style={styles.detailItem}>
+                            <MaterialIcons 
+                                name="check-circle" 
+                                size={20} 
+                                color={palette.success} 
+                                style={styles.bulletIcon} 
+                            />
+                            <Text style={styles.detailText}>{detail.trim()}</Text>
+                        </View>
+                    ))}
                 </View>
 
-                <View>
-                    <TouchableOpacity>
+                <View style={{ marginTop: 'auto' }}>
+                    <View style={styles.priceContainer}>
+                        <Text style={styles.priceText}>{formatCurrency(item.price/12)}</Text>
+                        <Text style={styles.cycleText}>/mês</Text>
+                    </View>
+
+                    <TouchableOpacity activeOpacity={0.8}>
                         <LinearGradient
-                            colors={[palette['netcom-orange'], palette['netcom-orange-darker']]}
+                            colors={[palette.secondary, palette.secondaryDark]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
                             style={styles.actionButton}
                         >
                             <Text style={styles.actionButtonText}>Contratar Plano</Text>
-                            <MaterialIcons name="keyboard-arrow-right" size={22} color="white" />
+                            <MaterialIcons name="arrow-forward" size={20} color={palette.white} />
                         </LinearGradient>
                     </TouchableOpacity>
                 </View>
-            </View>
+            </Animated.View>
         );
     };
     
+    // Barra de navegação com design atualizado
     const BottomNavBar = () => {
         const navItems = [
             { icon: 'home', label: 'Início', type: 'MaterialIcons', path: '/(tabs)/(home)' },
             { icon: 'shopping-bag', label: 'Loja', type: 'FontAwesome', path: '/(tabs)/(home)/loja' },
-            { icon: 'account', label: 'Perfil', type: 'MaterialCommunityIcons', path: '/(tabs)/(home)/perfil' }
+            { icon: 'account-circle', label: 'Perfil', type: 'MaterialCommunityIcons', path: '/(tabs)/(home)/perfil' }
         ] as const;
 
         return (
@@ -121,10 +137,17 @@ export default function LojaScreen() {
                 {navItems.map((item) => {
                     const isActive = pathname === item.path;
                     return (
-                        <TouchableOpacity key={item.path} style={styles.navButton} onPress={() => router.push(item.path)}>
-                            {item.type === 'MaterialIcons' && <MaterialIcons name={item.icon} size={26} color={isActive ? palette['netcom-blue'] : palette['netcom-placeholder']} />}
-                            {item.type === 'FontAwesome' && <FontAwesome name={item.icon} size={24} color={isActive ? palette['netcom-blue'] : palette['netcom-placeholder']} />}
-                            {item.type === 'MaterialCommunityIcons' && <MaterialCommunityIcons name={item.icon} size={26} color={isActive ? palette['netcom-blue'] : palette['netcom-placeholder']} />}
+                        <TouchableOpacity 
+                            key={item.path} 
+                            style={styles.navButton} 
+                            onPress={() => router.push(item.path)}
+                            activeOpacity={0.7}
+                        >
+                            <View style={isActive ? styles.navIconActiveContainer : null}>
+                                {item.type === 'MaterialIcons' && <MaterialIcons name={item.icon as any} size={26} color={isActive ? palette.primary : palette.textSecondary} />}
+                                {item.type === 'FontAwesome' && <FontAwesome name={item.icon as any} size={24} color={isActive ? palette.primary : palette.textSecondary} />}
+                                {item.type === 'MaterialCommunityIcons' && <MaterialCommunityIcons name={item.icon as any} size={26} color={isActive ? palette.primary : palette.textSecondary} />}
+                            </View>
                             <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>{item.label}</Text>
                         </TouchableOpacity>
                     );
@@ -134,202 +157,261 @@ export default function LojaScreen() {
     };
 
     if (loading) {
-        return <SafeAreaView style={styles.container}><ActivityIndicator style={{flex: 1}} size="large" color="white" /></SafeAreaView>;
+        return (
+            <SafeAreaView style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={palette.primary} />
+                <Text style={styles.loadingText}>Carregando nossos planos...</Text>
+            </SafeAreaView>
+        );
     }
 
     if (error) {
-        return <SafeAreaView style={styles.container}><View style={styles.centeredContainer}><Text style={styles.errorText}>{error}</Text></View></SafeAreaView>;
+        return (
+            <SafeAreaView style={styles.errorContainer}>
+                <MaterialIcons name="error-outline" size={48} color={palette.secondary} />
+                <Text style={styles.errorText}>{error}</Text>
+                <TouchableOpacity 
+                    style={styles.retryButton}
+                    onPress={() => router.replace(pathname as any)}
+                >
+                    <Text style={styles.retryButtonText}>Tentar novamente</Text>
+                </TouchableOpacity>
+            </SafeAreaView>
+        );
     }
 
     return (
         <SafeAreaView style={styles.container}>
-        <Stack.Screen
-            options={{
-                title: 'Loja',
-                // headerTitleAlign: 'center', // LINHA REMOVIDA
-                headerLeft: () => (
-                    <TouchableOpacity 
-                        onPress={() => router.back()} 
-                        style={styles.headerButton}
-                    >
-                        <MaterialIcons name="arrow-back" size={24} color={palette['netcom-card-bg']} />
-                    </TouchableOpacity>
-                ),
-                headerStyle: { 
-                    backgroundColor: palette['netcom-orange'], 
-                },
-                headerTintColor: palette['netcom-card-bg'], // Cor do título e ícones
-                headerTitleStyle: {
-                    fontWeight: '600',
-                    fontSize: 18
-                },
-                headerShadowVisible: false, // Adicionado para um visual mais limpo
-            }}
-        />
             <FlatList
                 data={products}
-                renderItem={({ item }) => <ProductCard item={item} />}
+                renderItem={({ item, index }) => <ProductCard item={item} index={index} />}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.contentContainer}
+                showsVerticalScrollIndicator={false}
                 ListHeaderComponent={
-                    <View style={styles.headerContainer}>
-                        <Text style={styles.screenTitle}>Nossos Planos</Text>
-                        <Text style={styles.screenSubtitle}>Escolha a oferta perfeita para você.</Text>
-                    </View>
+                    <Animated.View entering={FadeIn.duration(800)}>
+                        <LinearGradient
+                            colors={[palette.primary, palette.primaryLight]}
+                            style={styles.headerGradient}
+                        >
+                            <Text style={styles.screenTitle}>Nossos Planos</Text>
+                            <Text style={styles.screenSubtitle}>Encontre o plano perfeito para suas necessidades</Text>
+                        </LinearGradient>
+                        <View style={styles.listHeader}>
+                            <Text style={styles.recommendationText}>Recomendado para você</Text>
+                        </View>
+                    </Animated.View>
                 }
+                ListFooterComponent={<View style={{ height: 80 }} />} // Espaço para o BottomNav não cobrir o último card
             />
+            
             <BottomNavBar />
         </SafeAreaView>
     );
 }
 
-// 2. Estilos atualizados para usar o objeto 'palette'
+// Estilos redesenhados para uma aparência mais profissional
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#FFF",
+        backgroundColor: palette.background,
     },
-    contentContainer: {
-        paddingHorizontal: 16,
-        paddingBottom: 20,
+    // --- Loading e Error States ---
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: palette.background,
     },
-    headerContainer: {
-        paddingHorizontal: 4,
-        paddingTop: 20,
-        marginBottom: 10,
+    loadingText: {
+        marginTop: 16,
+        color: palette.textPrimary,
+        fontSize: 16,
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+    },
+    errorText: {
+        color: palette.textPrimary,
+        fontSize: 18,
+        textAlign: 'center',
+        marginVertical: 16,
+        lineHeight: 26,
+    },
+    retryButton: {
+        backgroundColor: palette.primary,
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 8,
+        marginTop: 16,
+    },
+    retryButtonText: {
+        color: palette.white,
+        fontWeight: '600',
+        fontSize: 16,
+    },
+    // --- Header ---
+    headerGradient: {
+        paddingHorizontal: 24,
+        paddingTop: 50, // Ajuste para SafeArea
+        paddingBottom: 40,
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
     },
     screenTitle: {
         fontSize: 32,
-        fontWeight: 'bold',
-        color: palette['netcom-card-bg'], // Branco
+        fontWeight: '800',
+        color: palette.white,
     },
     screenSubtitle: {
         fontSize: 16,
-        color: 'rgba(255, 255, 255, 0.7)', // Mantido como branco translúcido
+        color: 'rgba(255, 255, 255, 0.8)',
+        marginTop: 8,
+        maxWidth: '80%',
     },
+    listHeader: {
+        paddingHorizontal: 8,
+        marginTop: 24,
+        marginBottom: 8,
+    },
+    recommendationText: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: palette.textPrimary,
+    },
+    // --- Lista ---
+    contentContainer: {
+        paddingHorizontal: 16,
+        paddingTop: 16,
+    },
+    // --- Card do Produto ---
     productCard: {
-        backgroundColor: palette['netcom-card-bg'],
-        borderRadius: 20,
-        borderWidth: 3,
-        borderColor: palette['netcom-orange'], // Borda Laranja
+        backgroundColor: palette.cardBg,
+        borderRadius: 24,
         padding: 24,
-        marginBottom: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 10,
-        elevation: 8,
-        justifyContent: 'space-between',
-        minHeight: 380,
+        marginBottom: 20,
+        shadowColor: palette.primary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.1,
+        shadowRadius: 15,
+        elevation: 10,
+        borderWidth: 1,
+        borderColor: palette.gray200,
+        flex: 1,
+    },
+    cardHeader: {
+        marginBottom: 16,
+    },
+    cardBadge: {
+        backgroundColor: palette.secondary,
+        alignSelf: 'flex-start',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+        marginBottom: 16,
+    },
+    cardBadgeText: {
+        color: palette.white,
+        fontSize: 12,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
     },
     productTitle: {
-        fontSize: 24,
-        fontWeight: '800',
-        color: palette['netcom-blue'],
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: palette.primary,
+        marginBottom: 8,
     },
     productSubtitle: {
         fontSize: 15,
-        color: palette['netcom-text-secondary'],
-        marginTop: 6,
-        marginBottom: 20,
+        color: palette.textSecondary,
         lineHeight: 22,
     },
     detailsList: {
-        marginBottom: 24,
+        marginVertical: 16,
+        borderTopWidth: 1,
+        borderTopColor: palette.gray100,
+        paddingTop: 16,
     },
     detailItem: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         marginBottom: 12,
     },
     bulletIcon: {
         marginRight: 12,
+        marginTop: 3,
     },
     detailText: {
         fontSize: 15,
-        color: palette['netcom-text-primary'],
+        color: palette.textPrimary,
         flex: 1,
         lineHeight: 22,
     },
     priceContainer: {
         flexDirection: 'row',
         alignItems: 'flex-end',
-        justifyContent: 'flex-end',
-        marginBottom: 12,
+        marginVertical: 16,
     },
     priceText: {
-        fontSize: 28,
+        fontSize: 32,
         fontWeight: 'bold',
-        color: palette['netcom-blue'],
+        color: palette.primary,
     },
     cycleText: {
         fontSize: 16,
-        color: palette['netcom-text-secondary'],
+        color: palette.textSecondary,
         marginLeft: 4,
-        marginBottom: 3,
+        marginBottom: 4,
     },
     actionButton: {
         borderRadius: 16,
-        paddingVertical: 16,
+        paddingVertical: 18,
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
     },
     actionButtonText: {
-        color: palette['netcom-card-bg'], // Branco
+        color: palette.white,
         fontSize: 16,
         fontWeight: 'bold',
-        marginRight: 4,
+        marginRight: 8,
     },
-    centeredContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    errorText: {
-        color: palette['netcom-card-bg'], // Branco
-        fontSize: 16,
-        textAlign: 'center',
-    },
+    // --- Barra de Navegação ---
     navContainer: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        paddingVertical: 10,
+        paddingVertical: 8,
+        paddingBottom: 20, // Espaço para a Home Bar do iPhone
         borderTopWidth: 1,
-        borderTopColor: palette['netcom-input-border'],
-        backgroundColor: palette['netcom-card-bg'],
+        borderTopColor: palette.gray200,
+        backgroundColor: palette.cardBg,
+        position: 'absolute', // Fixa no final
+        bottom: 0,
+        left: 0,
+        right: 0,
     },
     navButton: {
         alignItems: 'center',
         padding: 4,
         flex: 1,
     },
+    navIconActiveContainer: {
+        backgroundColor: palette.gray100,
+        paddingHorizontal: 20,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
     navLabel: {
         fontSize: 12,
-        color: palette['netcom-placeholder'],
-        marginTop: 5,
-        fontWeight: '500',
+        color: palette.textSecondary,
+        marginTop: 6,
     },
     navLabelActive: {
-        color: palette['netcom-blue'],
+        color: palette.primary,
         fontWeight: '600',
     },
-    sectionHeaderContainer: {
-    backgroundColor: '#F9FAFB',
-    paddingTop: 24,
-    paddingBottom: 8,
-    paddingHorizontal: 4,
-},
-sectionHeader: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280', // Cinza médio
-    textTransform: 'capitalize',
-    letterSpacing: 0.5,
-},
-headerButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-},
 });

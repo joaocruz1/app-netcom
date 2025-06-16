@@ -88,6 +88,7 @@ export interface ProductInfo {
     count : number;
 }
 
+
 export const getProducts = async (): Promise<ProductInfo> => {
     try {
         const response = await axios.get<ProductInfo>(`${API_BASE_URL}product`, {

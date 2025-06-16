@@ -34,9 +34,9 @@ export default function PerfilScreen() {
         {
             title: 'Conta',
             items: [
-                { id: 'email', label: 'Alterar e-mail', icon: 'mail-outline', path: '/profile/change-email' },
-                { id: 'password', label: 'Alterar senha', icon: 'lock-outline', path: '/profile/change-password' },
-                { id: 'cards', label: 'Meus cartões', icon: 'card-outline', path: '/profile/my-cards' },
+                { id: 'email', label: 'Alterar e-mail', icon: 'mail-outline', path: '/(profile)/alterar-email'},
+                { id: 'password', label: 'Alterar senha', icon: 'lock-outline', path: '/(profile)/alterar-senha'},
+                { id: 'cards', label: 'Meus cartões', icon: 'card-outline', path: '/(profile)/meus-cards'},
             ]
         },
         {
